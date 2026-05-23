@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Décathlon EESPSCF Châtelet</title>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy: #0D2137;
+  --blue: #1B3A6B;
+  --mid: #2E6DB4;
+  --gold: #FFD700;
+  --silver: #C0C0C0;
+  --bronze: #CD853F;
+  --green: #2E7D32;
+  --red: #C62828;
+  --bg: #F4F6FA;
+  --card: #FFFFFF;
+  --text: #0D2137;
+  --muted: #6B7A99;
+  --border: #DDE3EE;
+  --success: #E8F5E9;
+  --success-text: #1B5E20;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+/* HEADER */
+.app-header {
+  background: var(--navy);
+  padding: 0 16px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.app-header h1 {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: white;
+  letter-spacing: 0.5px;
+}
+.header-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.5px;
+}
+.badge-admin { background: #7C3AED; color: white; }
+.badge-prof  { background: var(--mid); color: white; }
+.badge-public { background: var(--gold); color: var(--navy); }
+
+/* NAV TABS */
+.nav-tabs {
+  display: flex;
+  background: white;
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.nav-tabs::-webkit-scrollbar { display: none; }
+.nav-tab {
+  flex: 1;
+  min-width: 80px;
+  padding: 12px 8px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.nav-tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+
+/* SCREENS */
+.screen { display: none; padding: 16px; }
+.screen.active { display: block; }
+
+/* CARDS */
+.card {
+  background: var(--card);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+.card-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--navy);
+  letter-spacing: 0.3px;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+}
+
+/* FORM ELEMENTS */
+label { font-size: 12px; font-weight: 600; color: var(--muted); display: block; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+select, input[type=text], input[type=number], input[type=email], input[type=password] {
+  width: 100%; padding: 12px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-size: 16px;
+  font-family: 'Barlow', sans-serif;
+  color: var(--text);
+  background: white;
+  margin-bottom: 12px;
+  appearance: none;
+  -webkit-appearance: none;
+}
+select:focus, input:focus { outline: none; border-color: var(--mid); }
+
+/* BUTTONS */
+.btn {
+  width: 100%; padding: 14px;
+  border: none; border-radius: 10px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 17px; font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-transform: uppercase;
+}
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: var(--blue); color: white; }
+.btn-primary:hover { background: var(--navy); }
+.btn-success { background: var(--green); color: white; margin-bottom: 8px; }
+.btn-outline { background: transparent; color: var(--blue); border: 1.5px solid var(--blue); }
+.btn-gold { background: var(--gold); color: var(--navy); }
+.btn-sm { padding: 8px 14px; font-size: 13px; width: auto; }
+
+/* SCORE INPUT */
+.score-display {
+  background: var(--navy);
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  margin-bottom: 12px;
+}
+.score-display .label { color: rgba(255,255,255,0.6); font-size: 11px; margin-bottom: 4px; }
+.score-display .value { font-family: 'Barlow Condensed', sans-serif; font-size: 48px; font-weight: 800; color: var(--gold); letter-spacing: 1px; }
+.score-display .unit { font-size: 16px; color: rgba(255,255,255,0.7); margin-top: 2px; }
+
+.athlete-info {
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+.athlete-name { font-weight: 600; font-size: 16px; color: var(--navy); }
+.athlete-class { font-size: 13px; color: var(--muted); }
+
+/* CLASSEMENT */
+.cl-header {
+  background: var(--navy);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.cl-header select {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: white;
+  margin-bottom: 0;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 14px;
+  flex: 1;
+}
+.cl-row {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  gap: 10px;
+}
+.cl-row:last-child { border-bottom: none; }
+.cl-rank {
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 16px; font-weight: 800;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+.rank-1 { background: var(--gold); color: var(--navy); }
+.rank-2 { background: var(--silver); color: #333; }
+.rank-3 { background: var(--bronze); color: white; }
+.rank-n { background: var(--bg); color: var(--muted); font-size: 13px; }
+.cl-name { flex: 1; font-size: 14px; font-weight: 600; color: var(--navy); }
+.cl-class { font-size: 11px; color: var(--muted); }
+.cl-pts {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 18px; font-weight: 700; color: var(--blue);
+}
+.cl-ab { font-size: 11px; color: var(--red); font-weight: 600; }
+
+/* ADMIN */
+.ep-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ep-badge {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13px; font-weight: 700;
+  background: var(--blue); color: white;
+  padding: 3px 8px; border-radius: 6px;
+  white-space: nowrap;
+}
+.ep-name { flex: 1; font-size: 13px; color: var(--text); }
+.ep-prof { font-size: 12px; color: var(--muted); }
+.ep-prof.assigned { color: var(--green); font-weight: 600; }
+.ep-prof.unassigned { color: var(--red); }
+
+.progress-bar-wrap { background: var(--border); border-radius: 10px; height: 8px; margin: 8px 0; }
+.progress-bar { background: var(--mid); border-radius: 10px; height: 8px; transition: width 0.4s; }
+
+/* LOGIN */
+.login-wrap {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--navy);
+}
+.login-logo {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 32px; font-weight: 800;
+  color: var(--gold);
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+  text-align: center;
+}
+.login-sub { font-size: 13px; color: rgba(255,255,255,0.5); text-align: center; margin-bottom: 32px; }
+.login-card { background: white; border-radius: 16px; padding: 24px; width: 100%; max-width: 360px; }
+.login-card h2 { font-family: 'Barlow Condensed', sans-serif; font-size: 22px; font-weight: 700; color: var(--navy); margin-bottom: 16px; }
+.error-msg { background: #FFEBEE; color: var(--red); padding: 10px 12px; border-radius: 8px; font-size: 13px; margin-bottom: 12px; }
+.success-msg { background: var(--success); color: var(--success-text); padding: 10px 12px; border-radius: 8px; font-size: 13px; margin-bottom: 12px; }
+
+/* TOAST */
+.toast {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  background: var(--navy); color: white;
+  padding: 12px 20px; border-radius: 10px;
+  font-size: 14px; font-weight: 600;
+  z-index: 999; opacity: 0;
+  transition: opacity 0.3s;
+  white-space: nowrap;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+.toast.show { opacity: 1; }
+.toast.gold { background: var(--gold); color: var(--navy); }
+
+/* LOADING */
+.loading { text-align: center; padding: 40px; color: var(--muted); font-size: 14px; }
+.spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* UTILS */
+.mt-8 { margin-top: 8px; }
+.mt-12 { margin-top: 12px; }
+.row { display: flex; gap: 8px; }
+.row .btn { flex: 1; }
+.section-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+.divider { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+.live-dot { width: 8px; height: 8px; background: #4CAF50; border-radius: 50%; display: inline-block; animation: pulse 1.5s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+.text-center { text-align: center; }
+.text-muted { color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="loginScreen" class="login-wrap">
+  <div class="login-logo">🏆 DÉCATHLON</div>
+  <div class="login-sub">EESPSCF Châtelet — Gestion des scores</div>
+  <div class="login-card">
+    <h2>Connexion</h2>
+    <div id="loginError" class="error-msg" style="display:none;"></div>
+    <label>Adresse email</label>
+    <input type="email" id="loginEmail" placeholder="prof@eespscf.be">
+    <label>Mot de passe</label>
+    <input type="password" id="loginPassword" placeholder="••••••••">
+    <button class="btn btn-primary" onclick="doLogin()">Se connecter</button>
+    <p class="text-muted text-center mt-8" style="cursor:pointer;" onclick="showPublicView()">Voir le classement sans connexion →</p>
+  </div>
+</div>
+
+<!-- APP (après login) -->
+<div id="appScreen" style="display:none;">
+  <div class="app-header">
+    <h1>🏆 DÉCATHLON</h1>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span id="userBadge" class="header-badge"></span>
+      <span style="color:rgba(255,255,255,0.5);cursor:pointer;font-size:13px;" onclick="doLogout()">✕</span>
+    </div>
+  </div>
+
+  <div class="nav-tabs" id="navTabs">
+    <div class="nav-tab active" onclick="showTab('saisie')" id="tab-saisie">Saisie</div>
+    <div class="nav-tab" onclick="showTab('classement')" id="tab-classement">Classement</div>
+    <div class="nav-tab" onclick="showTab('admin')" id="tab-admin" style="display:none;">Admin</div>
+  </div>
+
+  <!-- SAISIE -->
+  <div class="screen active" id="screen-saisie">
+    <div class="card">
+      <div class="card-title" id="saisieEpreuveTitle">Mon épreuve</div>
+      <div id="saisieProfInfo" class="athlete-info" style="margin-bottom:12px;">
+        <div class="athlete-name" id="saisieEpreuveName"></div>
+        <div class="athlete-class" id="saisieEpreuveDesc"></div>
+      </div>
+
+      <label>Catégorie</label>
+      <select id="saisieCategorie" onchange="loadAthletes()">
+        <option value="">-- Choisir --</option>
+        <option>Filles 1ere</option><option>Garcons 1ere</option>
+        <option>Filles Secteur</option><option>Garcons Secteur</option>
+        <option>Filles Groupe</option><option>Garcons Groupe</option>
+        <option>Filles Metier</option><option>Garcons Metier</option>
+        <option>Filles T2</option><option>Garcons T2</option>
+      </select>
+
+      <label>Élève</label>
+      <select id="saisieEleve" onchange="updateAthleteDisplay()">
+        <option value="">-- Choisir d'abord la catégorie --</option>
+      </select>
+
+      <div id="scoreSection" style="display:none;">
+        <div class="score-display">
+          <div class="label">Score</div>
+          <div class="value" id="scorePreview">—</div>
+          <div class="unit" id="scoreUnit"></div>
+        </div>
+        <label id="scoreLabel">Score</label>
+        <input type="number" id="scoreInput" step="0.01" min="0"
+               placeholder="Entrez le score..."
+               oninput="updateScorePreview()"
+               style="font-size:20px;text-align:center;font-weight:600;">
+        <div class="row">
+          <button class="btn btn-success" onclick="saveScore()">✓ Valider</button>
+          <button class="btn btn-outline" onclick="nextAthlete()">Suivant →</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="recentCard" style="display:none;">
+      <div class="card-title">Derniers scores saisis</div>
+      <div id="recentList"></div>
+    </div>
+  </div>
+
+  <!-- CLASSEMENT -->
+  <div class="screen" id="screen-classement">
+    <div class="cl-header">
+      <div class="live-dot"></div>
+      <select id="clCategorie" onchange="loadClassement()">
+        <option value="">-- Catégorie --</option>
+        <option>Filles 1ere</option><option>Garcons 1ere</option>
+        <option>Filles Secteur</option><option>Garcons Secteur</option>
+        <option>Filles Groupe</option><option>Garcons Groupe</option>
+        <option>Filles Metier</option><option>Garcons Metier</option>
+        <option>Filles T2</option><option>Garcons T2</option>
+      </select>
+    </div>
+    <div id="classementContent">
+      <div class="loading"><div class="spinner"></div>Choisissez une catégorie</div>
+    </div>
+  </div>
+
+  <!-- ADMIN -->
+  <div class="screen" id="screen-admin">
+    <div class="card">
+      <div class="card-title">Avancement global</div>
+      <div id="progressInfo" class="text-muted" style="margin-bottom:6px;"></div>
+      <div class="progress-bar-wrap"><div class="progress-bar" id="progressBar" style="width:0%"></div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Gestion des épreuves</div>
+      <div id="adminEpreuveList"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Ajouter un utilisateur</div>
+      <div id="addUserMsg"></div>
+      <label>Email</label>
+      <input type="email" id="newUserEmail" placeholder="prof@eespscf.be">
+      <label>Rôle</label>
+      <select id="newUserRole">
+        <option value="prof">Professeur</option>
+        <option value="admin">Admin</option>
+      </select>
+      <label>Épreuve assignée (si prof)</label>
+      <select id="newUserEpreuve">
+        <option value="">Aucune</option>
+        <option value="EP1">EP1 — Saut en hauteur</option>
+        <option value="EP2">EP2 — Sprint 60m</option>
+        <option value="EP3">EP3 — Saut en longueur</option>
+        <option value="EP4">EP4 — Suspension barre</option>
+        <option value="EP5">EP5 — Lancer du poids</option>
+        <option value="EP6">EP6 — Mémoire cartes</option>
+        <option value="EP7">EP7 — Équilibre poteaux</option>
+        <option value="EP8">EP8 — Endurance parc</option>
+        <option value="EP9">EP9 — Tir à l'arc</option>
+        <option value="EP10">EP10 — Sled pull</option>
+      </select>
+      <label>Mot de passe temporaire</label>
+      <input type="text" id="newUserPassword" placeholder="min. 6 caractères">
+      <button class="btn btn-primary" onclick="createUser()">Créer le compte</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyAK_Tt3dCM-2_Z6gc6igyK3XnlMiCXxJTM",
+  authDomain: "decathlon-eespscf.firebaseapp.com",
+  projectId: "decathlon-eespscf",
+  storageBucket: "decathlon-eespscf.firebasestorage.app",
+  messagingSenderId: "675919956043",
+  appId: "1:675919956043:web:013234fe01ed9110a925ce",
+  measurementId: "G-HG3KSPMPJL"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db   = firebase.firestore();
+const auth = firebase.auth();
+
+const EPREUVES = {
+  EP1:  { nom: "Saut en hauteur",   unite: "cm",  sens: "max" },
+  EP2:  { nom: "Sprint 60m",        unite: "sec", sens: "min" },
+  EP3:  { nom: "Saut en longueur",  unite: "cm",  sens: "max" },
+  EP4:  { nom: "Suspension barre",  unite: "sec", sens: "max" },
+  EP5:  { nom: "Lancer du poids",   unite: "cm",  sens: "max" },
+  EP6:  { nom: "Mémoire cartes",    unite: "sec", sens: "min" },
+  EP7:  { nom: "Équilibre poteaux", unite: "sec", sens: "max" },
+  EP8:  { nom: "Endurance parc",    unite: "sec", sens: "min" },
+  EP9:  { nom: "Tir à l'arc",       unite: "pts", sens: "max" },
+  EP10: { nom: "Sled pull",         unite: "sec", sens: "min" },
+};
+
+const PTS = [200,190,180,175,170,165,160,155,150,145,140,135,130,125,120,115,110,105,100,95,90,85,80,75,70,65,60,55,50,45,40,35,30,25,20,15,10,5,...Array(32).fill(0)];
+
+let currentUser = null;
+let currentUserData = null;
+let athletes = [];
+let recentScores = [];
+let classementListener = null;
+
+// ── AUTH ────────────────────────────────────────────────────
+auth.onAuthStateChanged(async user => {
+  if (user) {
+    currentUser = user;
+    const doc = await db.collection('users').doc(user.uid).get();
+    if (doc.exists) {
+      currentUserData = doc.data();
+      showApp();
+    } else {
+      showToast("Compte non configuré — contactez l'admin", false);
+      auth.signOut();
+    }
+  } else {
+    currentUser = null;
+    currentUserData = null;
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('appScreen').style.display = 'none';
+  }
+});
+
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass  = document.getElementById('loginPassword').value;
+  const err   = document.getElementById('loginError');
+  err.style.display = 'none';
+  try {
+    await auth.signInWithEmailAndPassword(email, pass);
+  } catch(e) {
+    err.textContent = 'Email ou mot de passe incorrect';
+    err.style.display = 'block';
+  }
+}
+
+function doLogout() {
+  if (classementListener) classementListener();
+  auth.signOut();
+}
+
+function showPublicView() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appScreen').style.display = 'block';
+  document.getElementById('userBadge').textContent = 'Public';
+  document.getElementById('userBadge').className = 'header-badge badge-public';
+  document.getElementById('tab-saisie').style.display = 'none';
+  document.getElementById('tab-admin').style.display = 'none';
+  showTab('classement');
+}
+
+function showApp() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appScreen').style.display = 'block';
+  const role = currentUserData.role;
+  const badge = document.getElementById('userBadge');
+
+  if (role === 'admin') {
+    badge.textContent = 'Admin';
+    badge.className = 'header-badge badge-admin';
+    document.getElementById('tab-admin').style.display = 'block';
+    loadAdminView();
+  } else {
+    badge.textContent = 'Prof';
+    badge.className = 'header-badge badge-prof';
+  }
+  setupSaisieView();
+}
+
+// ── SAISIE ──────────────────────────────────────────────────
+function setupSaisieView() {
+  if (!currentUserData) return;
+  const ep = currentUserData.epreuve;
+  if (ep && EPREUVES[ep]) {
+    const e = EPREUVES[ep];
+    document.getElementById('saisieEpreuveTitle').textContent = ep + ' — ' + e.nom;
+    document.getElementById('saisieEpreuveName').textContent = e.nom;
+    document.getElementById('saisieEpreuveDesc').textContent = 'Unité: ' + e.unite + ' — ' + (e.sens==='max'?'Plus grand = mieux':'Plus petit = mieux');
+    document.getElementById('scoreLabel').textContent = 'Score (' + e.unite + ')';
+    document.getElementById('scoreUnit').textContent = e.unite;
+  } else {
+    document.getElementById('saisieEpreuveTitle').textContent = 'Saisie des scores';
+    document.getElementById('saisieProfInfo').style.display = 'none';
+  }
+}
+
+async function loadAthletes() {
+  const cat = document.getElementById('saisieCategorie').value;
+  const sel = document.getElementById('saisieEleve');
+  sel.innerHTML = '<option value="">Chargement...</option>';
+  if (!cat) { sel.innerHTML = '<option value="">-- Choisir d\'abord la catégorie --</option>'; return; }
+
+  const snap = await db.collection('athletes').where('categorie', '==', cat).orderBy('nom').get();
+  athletes = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  sel.innerHTML = '<option value="">-- Choisir un élève --</option>';
+  athletes.forEach(a => {
+    const opt = document.createElement('option');
+    opt.value = a.id;
+    opt.textContent = a.nom + ' (' + a.classe + ')';
+    sel.appendChild(opt);
+  });
+}
+
+function updateAthleteDisplay() {
+  const id = document.getElementById('saisieEleve').value;
+  const sec = document.getElementById('scoreSection');
+  if (!id) { sec.style.display = 'none'; return; }
+  const a = athletes.find(x => x.id === id);
+  if (!a) return;
+  sec.style.display = 'block';
+  document.getElementById('scoreInput').value = '';
+  document.getElementById('scorePreview').textContent = '—';
+}
+
+function updateScorePreview() {
+  const v = document.getElementById('scoreInput').value;
+  document.getElementById('scorePreview').textContent = v || '—';
+}
+
+async function saveScore() {
+  const eleveId = document.getElementById('saisieEleve').value;
+  const score   = parseFloat(document.getElementById('scoreInput').value);
+  const cat     = document.getElementById('saisieCategorie').value;
+  if (!eleveId || isNaN(score)) { showToast('Remplissez tous les champs', false); return; }
+
+  const ep = currentUserData?.epreuve;
+  if (!ep) { showToast('Aucune épreuve assignée', false); return; }
+
+  const athlete = athletes.find(a => a.id === eleveId);
+  await db.collection('scores').doc(eleveId + '_' + ep).set({
+    athleteId: eleveId,
+    athleteNom: athlete.nom,
+    athleteClasse: athlete.classe,
+    categorie: cat,
+    epreuve: ep,
+    score: score,
+    saisiPar: currentUser.email,
+    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  recentScores.unshift({ nom: athlete.nom, ep, score, unite: EPREUVES[ep]?.unite });
+  if (recentScores.length > 5) recentScores.pop();
+  renderRecent();
+
+  showToast('Score enregistré ! 🥇', true);
+  document.getElementById('scoreInput').value = '';
+  document.getElementById('scorePreview').textContent = '—';
+}
+
+function nextAthlete() {
+  const sel = document.getElementById('saisieEleve');
+  const idx = sel.selectedIndex;
+  if (idx < sel.options.length - 1) {
+    sel.selectedIndex = idx + 1;
+    updateAthleteDisplay();
+  }
+}
+
+function renderRecent() {
+  if (!recentScores.length) return;
+  const card = document.getElementById('recentCard');
+  card.style.display = 'block';
+  document.getElementById('recentList').innerHTML = recentScores.map(s =>
+    `<div class="cl-row">
+      <div class="cl-name">${s.nom}</div>
+      <div class="ep-badge" style="font-size:11px;">${s.ep}</div>
+      <div class="cl-pts">${s.score} ${s.unite}</div>
+    </div>`
+  ).join('');
+}
+
+// ── CLASSEMENT ──────────────────────────────────────────────
+async function loadClassement() {
+  const cat = document.getElementById('clCategorie').value;
+  const div = document.getElementById('classementContent');
+  if (!cat) { div.innerHTML = '<div class="loading"><div class="spinner"></div>Choisissez une catégorie</div>'; return; }
+  if (classementListener) classementListener();
+
+  div.innerHTML = '<div class="loading"><div class="spinner"></div>Chargement...</div>';
+
+  const [athSnap, scoreSnap] = await Promise.all([
+    db.collection('athletes').where('categorie', '==', cat).get(),
+    db.collection('scores').where('categorie', '==', cat).get()
+  ]);
+
+  const athList = athSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const scoreMap = {};
+  scoreSnap.docs.forEach(d => {
+    const s = d.data();
+    if (!scoreMap[s.athleteId]) scoreMap[s.athleteId] = {};
+    scoreMap[s.athleteId][s.epreuve] = s.score;
+  });
+
+  const results = athList.map(a => {
+    let total = 0;
+    const epScores = scoreMap[a.id] || {};
+    Object.entries(EPREUVES).forEach(([ep, info]) => {
+      const sc = epScores[ep];
+      if (sc !== undefined) {
+        const allScores = athList.map(x => scoreMap[x.id]?.[ep]).filter(v => v !== undefined);
+        const sorted = [...allScores].sort((a,b) => info.sens==='max' ? b-a : a-b);
+        const rank = sorted.indexOf(sc) + 1;
+        total += PTS[Math.min(rank-1, PTS.length-1)] || 0;
+      }
+    });
+    return { ...a, total, epScores };
+  });
+
+  results.sort((a,b) => b.total - a.total);
+
+  const eprNb = Object.keys(EPREUVES).length;
+  div.innerHTML = `
+    <div class="card" style="padding:0;overflow:hidden;">
+      <div style="padding:10px 14px;background:var(--bg);display:flex;justify-content:space-between;align-items:center;">
+        <span class="section-label">${results.length} participant(e)s</span>
+        <span style="font-size:11px;color:var(--muted);"><span class="live-dot"></span> Temps réel</span>
+      </div>
+      ${results.map((a, i) => {
+        const rank = i + 1;
+        const rankClass = rank===1?'rank-1':rank===2?'rank-2':rank===3?'rank-3':'rank-n';
+        const medal = rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':rank;
+        const done = Object.keys(a.epScores).length;
+        const missing = eprNb - done;
+        return `<div class="cl-row">
+          <div class="cl-rank ${rankClass}">${medal}</div>
+          <div style="flex:1">
+            <div class="cl-name">${a.nom}</div>
+            <div class="cl-class">${a.classe}${missing>0?' · <span class="cl-ab">'+missing+' EP manquante'+(missing>1?'s':'')+'</span>':''}</div>
+          </div>
+          <div class="cl-pts">${a.total} pts</div>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+// ── ADMIN ───────────────────────────────────────────────────
+async function loadAdminView() {
+  const [athSnap, scoreSnap, userSnap] = await Promise.all([
+    db.collection('athletes').get(),
+    db.collection('scores').get(),
+    db.collection('users').get()
+  ]);
+
+  const total = athSnap.size * Object.keys(EPREUVES).length;
+  const done  = scoreSnap.size;
+  const pct   = total > 0 ? Math.round(done/total*100) : 0;
+  document.getElementById('progressInfo').textContent = `${done} / ${total} scores encodés (${pct}%)`;
+  document.getElementById('progressBar').style.width = pct + '%';
+
+  const users = {};
+  userSnap.docs.forEach(d => { const u = d.data(); if (u.epreuve) users[u.epreuve] = u.email; });
+
+  document.getElementById('adminEpreuveList').innerHTML = Object.entries(EPREUVES).map(([ep, info]) => {
+    const prof = users[ep];
+    const epScores = scoreSnap.docs.filter(d => d.data().epreuve === ep).length;
+    return `<div class="ep-card">
+      <div class="ep-badge">${ep}</div>
+      <div style="flex:1">
+        <div class="ep-name">${info.nom}</div>
+        <div class="ep-prof ${prof?'assigned':'unassigned'}">${prof || 'Non assigné'}</div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);">${epScores} scores</div>
+    </div>`;
+  }).join('');
+}
+
+async function createUser() {
+  const email = document.getElementById('newUserEmail').value.trim();
+  const role  = document.getElementById('newUserRole').value;
+  const ep    = document.getElementById('newUserEpreuve').value;
+  const pass  = document.getElementById('newUserPassword').value;
+  const msg   = document.getElementById('addUserMsg');
+
+  if (!email || !pass) { msg.innerHTML = '<div class="error-msg">Remplissez tous les champs</div>'; return; }
+
+  try {
+    const cred = await auth.createUserWithEmailAndPassword(email, pass);
+    await db.collection('users').doc(cred.user.uid).set({ email, role, epreuve: ep || null });
+    msg.innerHTML = '<div class="success-msg">Compte créé ! ' + email + '</div>';
+    document.getElementById('newUserEmail').value = '';
+    document.getElementById('newUserPassword').value = '';
+    await auth.signInWithEmailAndPassword(currentUser.email, '');
+  } catch(e) {
+    msg.innerHTML = '<div class="error-msg">' + e.message + '</div>';
+  }
+}
+
+// ── NAVIGATION ──────────────────────────────────────────────
+function showTab(tab) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('screen-' + tab).classList.add('active');
+  document.getElementById('tab-' + tab).classList.add('active');
+  if (tab === 'classement') loadClassement();
+}
+
+function showToast(msg, success=true) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (success?' gold':'');
+  setTimeout(() => t.className = 'toast', 2500);
+}
+</script>
+</body>
+</html>
