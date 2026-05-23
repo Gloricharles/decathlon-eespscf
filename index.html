@@ -562,8 +562,9 @@ async function loadAthletes() {
   sel.innerHTML = '<option value="">Chargement...</option>';
   if (!cat) { sel.innerHTML = '<option value="">-- Choisir d\'abord la catégorie --</option>'; return; }
 
-  const snap = await db.collection('athletes').where('categorie', '==', cat).orderBy('nom').get();
+  const snap = await db.collection('athletes').where('categorie', '==', cat).get();
   athletes = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  athletes.sort((a, b) => a.nom.localeCompare(b.nom, 'fr'));
   sel.innerHTML = '<option value="">-- Choisir un élève --</option>';
   athletes.forEach(a => {
     const opt = document.createElement('option');
